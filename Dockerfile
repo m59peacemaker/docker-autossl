@@ -19,7 +19,7 @@ ENV NODE_ENV=production
 
 WORKDIR /usr/lib/docker-autossl
 
-COPY package.json /usr/lib/docker-autossl
+COPY package.json /usr/lib/docker-autossl/
 RUN npm install
 
 # cleanup
@@ -34,7 +34,6 @@ COPY bin       /usr/lib/docker-autossl/bin
 RUN npm link
 
 VOLUME /etc/letsencrypt
-VOLUME /etc/letsencrypt/live
 
 # signals like p.kill() in node don't work without dumb-init
 ENTRYPOINT ["dumb-init"]
