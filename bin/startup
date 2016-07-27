@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+
+const {spawn, execSync} = require('child_process')
+const fs = require('fs')
+const path = require('path')
+const {parseCert} = require('x509')
+const chalk = require('chalk')
+const compileConf = require('../lib/compile-conf')
+const {DOMAINS, EMAIL} = process.env
+
+if (!DOMAINS || !DOMAINS.length) {
+  throw new Error('No domains given.')
+}
+if (!EMAIL) {
+  throw new Error('No email given.')
+}
+
+const domains = DOMAINS.split(',').map(v => v.trim())
+
+// iterate through /etc/letsencrypt/live fullchain.pem(s), using x509 to collect names
+// If any names are in domains that aren't in live names, get a new cert
+//otherwise, check the date of the current cert, renew if needed, set job to renew in 2 months, everyday until successful
+
+const leDir = '/etc/letsencrypt/live'
+const certs = fs.readdirSync(leDir).map(dir => {
+  return parseCert(path.join(leDir, dir, 'fullchain.pem'))
+})
+
+const certsNames = certs.map(cert => {
+  return [cert.subject.commonName, ...cert.altNames]
+})
+
+const existingCert = certsNames.find(certNames => {
+  return String(certNames) === String(domains)
+})
+
+if (!existingCert) {
+  const finalhandler = require('finalhandler')
+  const http = require('http')
+  const serveStatic = require('serve-static')
+  const serve = serveStatic('/var/www')
+  const server = http.createServer((req, res) => {
+    serve(req, res, finalhandler(req, res))
+  })
+  server.listen(13135, () => {
+    try {
+      const result = execSync('certbot' + [
+        ' certonly',
+        '--test-cert', // for testing!
+        '-a', 'webroot',
+        '--webroot-path /var/www',
+        '--agree-tos',
+        '--email', EMAIL,
+        '-d', domains.join(' -d ')
+      ].join(' '))
+      console.log(result)
+    } catch (err) {
+
+    }
+    //server.close()
+  })
+}
