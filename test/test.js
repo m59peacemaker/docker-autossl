@@ -2,11 +2,8 @@ const test = require('tape')
 const {spawn: _spawn} = require('child_process')
 const fs = require('fs')
 const tryConnect = require('try-net-connect')
-const http = require('http')
-const httpProxy = require('http-proxy')
 const pkg = require('../package.json')
 const image = 'pmkr/autossl:' + pkg.version
-const isAcmeChallengePath = require('./lib/is-acme-challenge-path')
 
 const spawn = (command, args, options = {}) => {
   options.stdio = 'inherit' // makes docker processes loud
@@ -17,31 +14,16 @@ const tryConnectAsync = (...args) => new Promise(resolve => {
  tryConnect(...args).on('connected', resolve)
 })
 
-const startProxyServer = () => {
-  return new Promise(resolve => {
-    const proxy = httpProxy.createProxyServer()
-    const server =  http.createServer((req, res) => {
-      if (isAcmeChallengePath(req.url)) {
-        proxy.web(req, res, {target: 'http://127.0.0.1:13135'})
-      } else {
-        res.statusCode = 404
-        res.end()
-      }
-    }, resolve)
-    process.on('exit', () => {
-      server.close()
-      proxy.close()
-    })
-  })
-}
+const serversReady = () => Promise.all([
+  tryConnectAsync({port: 4000, retry: 250}),
+  tryConnectAsync({port: 5002,   retry: 250})
+])
 
 const EMAIL = "johnnyhauser@gmail.com"
 
-Promise.all([
-  tryConnectAsync({port: 4000, retry: 250}),
-  startProxyServer()
-]).then(() => {
+serversReady().then(() => {
   test('gets a single name certificate', t => {
+    // make this a function, next test can use it to get a cert to /tmp/whatever on the host, then bind it on another container that acts when there's already a cert
     const p = spawn('docker', [
       'run',
       '--rm',
@@ -57,6 +39,3 @@ Promise.all([
     })
   })
 })
-
-const caServer = spawn('./start-ca-server.sh', {cwd: __dirname})
-process.on('exit', () => caServer.kill())

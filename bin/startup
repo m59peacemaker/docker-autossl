@@ -23,9 +23,13 @@ const neededCertNames = {commonName: domains[0], altNames: [...domains.slice(1)]
 
 const getCerts = () => {
   const leDir = '/etc/letsencrypt/live'
+  try {
   return fs.readdirSync(leDir).map(dir => {
     return parseCert(path.join(leDir, dir, 'fullchain.pem'))
   })
+  } catch(err) {
+    return []
+  }
 }
 
 const getCertNames = cert => cert.altNames
@@ -49,7 +53,8 @@ if (!existingCert) {
     const result = exec('certbot' + [
       ' certonly',
       '--expand', // add new domains to existing if available
-      '--test-cert',
+      '--server', 'http://127.0.0.1:4000/directory',
+      '--tls-sni-01-port', '5001',
       '-a', 'webroot',
       '--webroot-path /var/www',
       '--agree-tos',

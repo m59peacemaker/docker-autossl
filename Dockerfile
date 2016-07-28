@@ -33,7 +33,7 @@ COPY lib       /usr/lib/docker-autossl/lib
 COPY bin       /usr/lib/docker-autossl/bin
 RUN npm link
 
-VOLUME /etc/letsencrypt
+# VOLUME /etc/letsencrypt
 
 # signals like p.kill() in node don't work without dumb-init
 ENTRYPOINT ["dumb-init"]
