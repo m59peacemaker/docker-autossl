@@ -21,6 +21,7 @@
     "x509": "^0.2.6"
   },
   "devDependencies": {
+    "http-proxy": "^1.14.0",
     "tape": "^4.6.0",
     "try-net-connect": "^3.0.0"
   }

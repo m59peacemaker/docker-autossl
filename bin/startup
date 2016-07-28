@@ -5,7 +5,6 @@ const fs = require('fs')
 const path = require('path')
 const {parseCert} = require('x509')
 const chalk = require('chalk')
-const compileConf = require('../lib/compile-conf')
 const {DOMAINS, EMAIL} = process.env
 
 if (!DOMAINS || !DOMAINS.length) {
@@ -46,7 +45,8 @@ if (!existingCert) {
     try {
       const result = execSync('certbot' + [
         ' certonly',
-        '--test-cert', // for testing!
+        '--server', 'http://127.0.0.1:4000/directory',
+        '--tls-sni-01-port', '5001',
         '-a', 'webroot',
         '--webroot-path /var/www',
         '--agree-tos',
