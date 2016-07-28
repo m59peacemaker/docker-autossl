@@ -16,26 +16,25 @@ const tryConnectAsync = (...args) => new Promise(resolve => {
 
 const serversReady = () => Promise.all([
   tryConnectAsync({port: 4000, retry: 250}),
-  tryConnectAsync({port: 5002,   retry: 250})
+  tryConnectAsync({port: 5002, retry: 250})
 ])
 
 const EMAIL = "johnnyhauser@gmail.com"
 
 serversReady().then(() => {
   test('gets a single name certificate', t => {
+    t.plan(1)
     // make this a function, next test can use it to get a cert to /tmp/whatever on the host, then bind it on another container that acts when there's already a cert
-    const p = spawn('docker', [
+    spawn('docker', [
       'run',
       '--rm',
       '--net=host',
       '-e', 'EMAIL='+EMAIL,
       '-e', 'DOMAINS=m59.us',
-      //'-v', '/tmp/letsencrypt:/etc/letsencrypt',
       image
     ])
-      .on('close', () => t.end())
-    p.on('end', (data) => {
-
-    })
+      .on('close', exitCode => t.equal(exitCode, 0))
   })
 })
+
+// --expand option?
