@@ -1,8 +1,8 @@
 up:
 	@docker run --rm -it --net=host \
-  -e DOMAINS="a.com, b.com, c.net" \
+  -e DOMAINS="m59.us,www.m59.us" \
   -e EMAIL="johnnyhauser@gmail.com" \
-  -v /tmp/letsencrypt:/etc/letsencrypt \
+  -v /etc/letsencrypt:/etc/letsencrypt \
   pmkr/autossl:0.0.0
 
 shell:

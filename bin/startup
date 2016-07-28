@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const {spawn, execSync} = require('child_process')
+const {spawn, exec} = require('child_process')
 const fs = require('fs')
 const path = require('path')
 const {parseCert} = require('x509')
@@ -15,19 +15,23 @@ if (!EMAIL) {
 }
 
 const domains = DOMAINS.split(',').map(v => v.trim())
+const neededCertNames = {commonName: domains[0], altNames: [...domains.slice(1)]}
 
 // iterate through /etc/letsencrypt/live fullchain.pem(s), using x509 to collect names
 // If any names are in domains that aren't in live names, get a new cert
 //otherwise, check the date of the current cert, renew if needed, set job to renew in 2 months, everyday until successful
 
-const leDir = '/etc/letsencrypt/live'
-const certs = fs.readdirSync(leDir).map(dir => {
-  return parseCert(path.join(leDir, dir, 'fullchain.pem'))
-})
+const getCerts = () => {
+  const leDir = '/etc/letsencrypt/live'
+  return fs.readdirSync(leDir).map(dir => {
+    return parseCert(path.join(leDir, dir, 'fullchain.pem'))
+  })
+}
 
-const certsNames = certs.map(cert => {
-  return [cert.subject.commonName, ...cert.altNames]
-})
+const getCertNames = cert => cert.altNames
+
+const certs = getCerts()
+const certsNames = certs.map(getCertNames)
 
 const existingCert = certsNames.find(certNames => {
   return String(certNames) === String(domains)
@@ -42,21 +46,20 @@ if (!existingCert) {
     serve(req, res, finalhandler(req, res))
   })
   server.listen(13135, () => {
-    try {
-      const result = execSync('certbot' + [
-        ' certonly',
-        '--server', 'http://127.0.0.1:4000/directory',
-        '--tls-sni-01-port', '5001',
-        '-a', 'webroot',
-        '--webroot-path /var/www',
-        '--agree-tos',
-        '--email', EMAIL,
-        '-d', domains.join(' -d ')
-      ].join(' '))
-      console.log(result)
-    } catch (err) {
-
-    }
-    //server.close()
+    const result = exec('certbot' + [
+      ' certonly',
+      '--expand', // add new domains to existing if available
+      '--test-cert',
+      '-a', 'webroot',
+      '--webroot-path /var/www',
+      '--agree-tos',
+      '--email', EMAIL,
+      '-d', domains.join(' -d ')
+    ].join(' '), (err, result) => {
+      console.log(err, result)
+      server.close()
+    })
   })
+} else {
+  console.log(certsNames)
 }
