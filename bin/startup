@@ -5,7 +5,9 @@ const fs = require('fs')
 const path = require('path')
 const {parseCert} = require('x509')
 const chalk = require('chalk')
+const registerCert = require('../lib/register-cert')
 const {DOMAINS, EMAIL} = process.env
+const AUTO = process.env.AUTO || true
 
 if (!DOMAINS || !DOMAINS.length) {
   throw new Error('No domains given.')
@@ -15,22 +17,27 @@ if (!EMAIL) {
 }
 
 const domains = DOMAINS.split(',').map(v => v.trim())
-const neededCertNames = {commonName: domains[0], altNames: [...domains.slice(1)]}
+
+registerOrRenewCerts(domains, EMAIL).then(() => {
+  if (AUTO) {
+    keepCertsValid()
+  }
+})
+
+function registerOrRenewCerts (domains, email) {
+  const cert = readCert(domains)
+  if (!cert) {
+    return registerCert(domains, email)
+  } else {
+    if (certNeedsToBeRenewed(cert)) {
+      return renewCert(domains, email)
+    }
+  }
+}
 
 // iterate through /etc/letsencrypt/live fullchain.pem(s), using x509 to collect names
 // If any names are in domains that aren't in live names, get a new cert
 //otherwise, check the date of the current cert, renew if needed, set job to renew in 2 months, everyday until successful
-
-const getCerts = () => {
-  const leDir = '/etc/letsencrypt/live'
-  try {
-  return fs.readdirSync(leDir).map(dir => {
-    return parseCert(path.join(leDir, dir, 'fullchain.pem'))
-  })
-  } catch(err) {
-    return []
-  }
-}
 
 const getCertNames = cert => cert.altNames
 
@@ -42,32 +49,13 @@ const existingCert = certsNames.find(certNames => {
 })
 
 if (!existingCert) {
-  const finalhandler = require('finalhandler')
-  const http = require('http')
-  const serveStatic = require('serve-static')
-  const serve = serveStatic('/var/www')
-  const server = http.createServer((req, res) => {
-    serve(req, res, finalhandler(req, res))
-  })
-  server.listen(13135, () => {
-    const result = exec('certbot' + [
-      ' certonly',
-      '--expand', // add new domains to existing if available
-      '--server', 'http://127.0.0.1:4000/directory',
-      '--tls-sni-01-port', '5001',
-      '-a', 'webroot',
-      '--webroot-path /var/www',
-      '--agree-tos',
-      '--email', EMAIL,
-      '-d', domains.join(' -d ')
-    ].join(' '), (err, result) => {
-      if (err) {
-        console.log(err)
-        process.exit(1)
-      }
-      console.log(result)
-      server.close()
-    })
+  registerCert({domains, email: EMAIL, staging: true}, (err, result) => {
+    if (err) {
+      console.log(err)
+      process.exit(1)
+    }
+    console.log(result)
+    server.close()
   })
 } else {
   console.log(certsNames)

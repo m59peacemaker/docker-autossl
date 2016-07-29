@@ -6,7 +6,8 @@
     "startup": "bin/startup"
   },
   "scripts": {
-    "test": "npm run build && tape test/*.js",
+    "shell": "npm run build && docker run --rm -it --net host pmkr/autossl:$npm_package_version /bin/sh",
+    "ca-server": "docker run --rm --net host acmephp/testing-ca",
     "build": "docker build -t pmkr/autossl:$npm_package_version ."
   },
   "dependencies": {

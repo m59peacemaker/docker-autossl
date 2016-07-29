@@ -5,12 +5,24 @@ const httpProxy = require('http-proxy')
 const proxy = httpProxy.createProxyServer()
 const isAcmeChallengePath = require('./lib/is-acme-challenge-path')
 
+function error (err, req, res) {
+  res.statusCode = 404
+  res.end(String(err))
+}
+
+proxy.on('error', error)
+
+/*
+  for development
+  a server that proxies acme challenge requests to port 13135
+  a proxy like this on port 80 in production proxies certbot requests to autossl
+*/
 http.createServer((req, res) => {
-  console.log(req.url)
   if (isAcmeChallengePath(req.url)) {
     proxy.web(req, res, {target: 'http://127.0.0.1:13135'})
   } else {
-    res.statusCode = 404
-    res.end()
+    error('This server only accepts acme challenge paths.', req, res)
   }
-}).listen(5002)
+}).listen(5002, () => {
+  console.log('Listening.')
+})
