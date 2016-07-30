@@ -1,6 +1,8 @@
 # pmkr/autossl
 
-A docker service that registers and renews SSL certificates.
+[https://img.shields.io/badge/Docker%20Hub-Hosted-blue.svg](https://hub.docker.com/r/pmkr/autossl/)
+
+A docker service that registers and renews SSL certificates with [Let's Encrypt](https://letsencrypt.org/)
 
 ## requirements
 
