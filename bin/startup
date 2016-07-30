@@ -1,62 +1,41 @@
 #!/usr/bin/env node
 
-const {spawn, exec} = require('child_process')
-const fs = require('fs')
-const path = require('path')
-const {parseCert} = require('x509')
-const chalk = require('chalk')
-const registerCert = require('../lib/register-cert')
-const {DOMAINS, EMAIL} = process.env
-const AUTO = process.env.AUTO || true
+const CronJob = require('cron').CronJob
+
+const registerOrRenewCert = require('../lib/register-or-renew-cert')
+
+const certbotArgs = process.argv.slice(2)
+const {DOMAINS, EMAIL, AUTO, CRON_PATTERN, DEVELOPMENT} = process.env
+
+const auto = process.env.AUTO === 'false' ? false : true
+const development = DEVELOPMENT === 'true' ? true : false
+const defaultCronPattern = '00 00 00 * * *' // every day at midnight
+const port = 13135
 
 if (!DOMAINS || !DOMAINS.length) {
   throw new Error('No domains given.')
 }
+
 if (!EMAIL) {
   throw new Error('No email given.')
 }
 
 const domains = DOMAINS.split(',').map(v => v.trim())
 
-registerOrRenewCerts(domains, EMAIL).then(() => {
-  if (AUTO) {
-    keepCertsValid()
+const registerOrRenew = () => registerOrRenewCert({
+  port,
+  staticDir: '/var/www',
+  domains,
+  email: EMAIL,
+  development,
+  certbotArgs
+})
+  .then(result => console.log(result))
+  .catch(err   => console.log(err) && process.exit(1))
+
+registerOrRenew().then(() => {
+  if (auto) {
+    const job = new CronJob(CRON_PATTERN || defaultCronPattern, registerOrRenew)
+    job.start()
   }
 })
-
-function registerOrRenewCerts (domains, email) {
-  const cert = readCert(domains)
-  if (!cert) {
-    return registerCert(domains, email)
-  } else {
-    if (certNeedsToBeRenewed(cert)) {
-      return renewCert(domains, email)
-    }
-  }
-}
-
-// iterate through /etc/letsencrypt/live fullchain.pem(s), using x509 to collect names
-// If any names are in domains that aren't in live names, get a new cert
-//otherwise, check the date of the current cert, renew if needed, set job to renew in 2 months, everyday until successful
-
-const getCertNames = cert => cert.altNames
-
-const certs = getCerts()
-const certsNames = certs.map(getCertNames)
-
-const existingCert = certsNames.find(certNames => {
-  return String(certNames) === String(domains)
-})
-
-if (!existingCert) {
-  registerCert({domains, email: EMAIL, staging: true}, (err, result) => {
-    if (err) {
-      console.log(err)
-      process.exit(1)
-    }
-    console.log(result)
-    server.close()
-  })
-} else {
-  console.log(certsNames)
-}
