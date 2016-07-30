@@ -71,6 +71,10 @@ Manually call `startup` command and pass arguments for `certbot`
 docker run pmkr/autossl startup --test-cert
 ```
 
+## responding to renewal
+
+Run a script to watch the certificates or certificate directory for changes and respond.
+
 ## Development
 
 To run tests:
