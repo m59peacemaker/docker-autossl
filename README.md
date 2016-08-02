@@ -15,7 +15,7 @@ GET ^/\.well-known/acme-challenge/([^/]+)$
 ```nginx
 location ~ ^/\.well-known/acme-challenge/([^/]+)$ {
   if ($request_method = GET) {
-    proxy_pass http://127.0.0.1:13135
+    proxy_pass http://127.0.0.1:13135;
   }
 }
 ```
