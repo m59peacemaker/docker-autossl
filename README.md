@@ -75,7 +75,7 @@ docker run pmkr/autossl startup --test-cert
 
 Run a script to watch the certificates or certificate directory for changes and respond.
 
-## Development
+## development
 
 To run tests:
 
