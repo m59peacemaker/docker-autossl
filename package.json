@@ -1,6 +1,6 @@
 {
   "name": "docker-autossl",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": "true",
   "bin": {
     "startup": "bin/startup"
@@ -8,14 +8,14 @@
   "scripts": {
     "build": "docker build -t pmkr/autossl:$npm_package_version ./",
     "test": "npm run build && node test/index.js",
-    "ca-server": "docker run --rm --net host acmephp/testing-ca",
-    "proxy-server": "./test/bin/start-proxy-server"
+    "ca-server": "docker run --rm --net host -e BOULDER_CALLBACK_PORT=80 acmephp/testing-ca:1.0.0"
   },
   "dependencies": {
     "cron": "^1.1.0",
     "finalhandler": "^0.5.0",
     "mkdirp": "^0.5.1",
-    "serve-static": "^1.11.1"
+    "serve-static": "^1.11.1",
+    "test-port": "^1.2.0"
   },
   "devDependencies": {
     "chokidar": "^1.6.0",

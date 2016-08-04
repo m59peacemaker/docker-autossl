@@ -6,7 +6,7 @@ A docker service that registers and renews SSL certificates with [Let's Encrypt]
 
 ## requirements
 
-Have a server listening on port 80 that proxies the following request to autossl port 13135
+If there is a server listening on port 80, it must proxy the following request to autossl port 13135.
 
 ```
 GET ^/\.well-known/acme-challenge/([^/]+)$
@@ -27,6 +27,10 @@ if (regex.test(req.url) && req.method === 'GET') {
   proxy(req, res, 'http://127.0.0.1:13135')
 }
 ```
+
+autossl will exit if it attempts registration and a server is listening on port 80, but the server is not proxying acme challenges to autossl.
+
+To avoid a circular dependency wherein the server on port 80 needs certificates to startup and autossl needs a proxy on port 80 in order to register certificates, start autossl first. It will register certificates using port 80 if it is unused. Once registration is complete, start the other server on port 80.
 
 ## example
 
@@ -81,7 +85,6 @@ To run tests:
 
 ```sh
 npm run ca-server
-npm run proxy-server
-# it's cruel, but sudo is needed so that the host can interact with files created by the container
+# it's cruel, but sudo is needed so that the host can interact with files created by the container and to test proxy server on port 80.
 sudo npm test
 ```
