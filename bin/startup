@@ -2,6 +2,7 @@
 
 const CronJob = require('cron').CronJob
 
+const log = require('../lib/log')
 const registerOrRenewCert = require('../lib/register-or-renew-cert')
 
 const certbotArgs = process.argv.slice(2)
@@ -10,32 +11,42 @@ const {DOMAINS, EMAIL, AUTO, CRON_PATTERN, DEVELOPMENT} = process.env
 const auto = process.env.AUTO === 'false' ? false : true
 const development = DEVELOPMENT === 'true' ? true : false
 const defaultCronPattern = '00 00 00 * * *' // every day at midnight
+const cronPattern = CRON_PATTERN || defaultCronPattern
 const port = 13135
 
-if (!DOMAINS || !DOMAINS.length) {
-  throw new Error('No domains given.')
-}
+try {
+  if (!DOMAINS || !DOMAINS.length) {
+    throw new Error('No domains given.')
+  }
 
-if (!EMAIL) {
-  throw new Error('No email given.')
+  if (!EMAIL) {
+    throw new Error('No email given.')
+  }
+} catch(err) {
+  log.fatal(err)
+  process.exit(1)
 }
 
 const domains = DOMAINS.split(',').map(v => v.trim())
 
-const registerOrRenew = () => registerOrRenewCert({
-  port,
-  staticDir: '/var/www',
-  domains,
-  email: EMAIL,
-  development,
-  certbotArgs
-})
-  .then(result => console.log(result))
-  .catch(err   => console.log(err) && process.exit(1))
+const registerOrRenew = () => {
+  log.info('Attemping to register or renew certificates.')
+  return registerOrRenewCert({
+    port,
+    staticDir: '/var/www',
+    domains,
+    email: EMAIL,
+    development,
+    certbotArgs
+  })
+  .then(result => log.info(result))
+  .catch(err   => log.fatal(err) && process.exit(1))
+}
 
 registerOrRenew().then(() => {
   if (auto) {
-    const job = new CronJob(CRON_PATTERN || defaultCronPattern, registerOrRenew)
+    log.info('Scheduling renewal job - ' + cronPattern)
+    const job = new CronJob(cronPattern, registerOrRenew)
     job.start()
   }
 })

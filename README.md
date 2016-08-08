@@ -67,6 +67,10 @@ The email address used for certificates.
 
 Default is every night at midnight.
 
+### `LOG_LEVEL=info`
+
+[Bunyan log level](https://github.com/trentm/node-bunyan#levels)
+
 ## pass arguments to certbot
 
 Manually call `startup` command and pass arguments for `certbot`

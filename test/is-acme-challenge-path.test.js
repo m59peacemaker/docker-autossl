@@ -12,13 +12,12 @@ test('isAcmeChallengePath is case-sensitive', t => {
 })
 
 test('isAcmeChallengePath returns false for not challenge path', t => {
-  t.plan(1)
+  t.plan(2)
   t.false(isAcmeChallengePath('/.bleh'))
+  t.false(isAcmeChallengePath('/wwell-known/acme-challenge/LeqVUYNf2d9mVVOKIt-jTlDfsvmNmw0F5-vywWeA_1w'))
 })
 
 test('isAcmeChallengePath returns false for almost challenge path (lacking id fragment)', t => {
   t.plan(1)
   t.false(isAcmeChallengePath('/.well-known/acme-challenge/'))
 })
-
-
