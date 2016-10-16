@@ -21,7 +21,7 @@ location ~ ^/\.well-known/acme-challenge/([^/]+)$ {
 ```
 
 ```js
-// node.js example - see test/bin/ for full example
+// node.js example - see test/lib/proxy.js for full example
 const regex = new RegExp("^/\.well-known/acme-challenge/([^/]+)$")
 if (regex.test(req.url) && req.method === 'GET') {
   proxy(req, res, 'http://127.0.0.1:13135')
